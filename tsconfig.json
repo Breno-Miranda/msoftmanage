@@ -1,0 +1,56 @@
+{
+    "compilerOptions": {
+        // Type Checking
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        // Modules
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "allowImportingTsExtensions": true,
+        // Emit
+        "target": "ESNext",
+        "lib": [
+            "ESNext"
+        ],
+        "noEmit": true,
+        // Interop Constraints
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        // Language and Environment
+        "jsx": "react-jsx",
+        "types": [
+            "bun-types"
+        ],
+        // Paths
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ],
+            "@config/*": [
+                "./src/config/*"
+            ],
+            "@models/*": [
+                "./src/models/*"
+            ],
+            "@routes/*": [
+                "./src/routes/*"
+            ],
+            "@types/*": [
+                "./src/types/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

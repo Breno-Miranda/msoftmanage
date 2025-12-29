@@ -1,0 +1,23 @@
+{
+  "name": "bun-mongodb-api",
+  "version": "1.0.0",
+  "description": "API REST robusta com Bun + MongoDB + ElysiaJS",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "elysia": "^0.8.17",
+    "mongoose": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
