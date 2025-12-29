@@ -52,6 +52,15 @@ class DatabaseConnection {
             throw new Error('❌ MONGODB_URI não está definida nas variáveis de ambiente');
         }
 
+        // Log da URI mascarada para debug (esconde a senha)
+        const maskedUri = MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+        console.log('🔍 [DEBUG] Tentando conectar com URI:', maskedUri);
+        console.log('🔍 [DEBUG] Todas as variáveis de ambiente disponíveis:');
+        console.log('   - MONGODB_URI:', maskedUri);
+        console.log('   - PORT:', process.env.PORT);
+        console.log('   - NODE_ENV:', process.env.NODE_ENV);
+        console.log('   - HOSTNAME:', process.env.HOSTNAME);
+
         // Cria uma nova promise de conexão
         this.connectionPromise = this.establishConnection(MONGODB_URI);
 
@@ -75,6 +84,17 @@ class DatabaseConnection {
         try {
             console.log('🔄 Conectando ao MongoDB...');
 
+            // Extrai informações da URI para debug
+            const uriMatch = uri.match(/mongodb:\/\/(?:([^:]+):([^@]+)@)?([^:/]+)(?::(\d+))?\/(.+)/);
+            if (uriMatch) {
+                const [, user, , host, port, database] = uriMatch;
+                console.log('🔍 [DEBUG] Detalhes da conexão:');
+                console.log(`   - Usuário: ${user || 'sem autenticação'}`);
+                console.log(`   - Host: ${host}`);
+                console.log(`   - Porta: ${port || '27017'}`);
+                console.log(`   - Banco: ${database}`);
+            }
+
             const connection = await mongoose.connect(uri, {
                 // Configurações otimizadas para produção
                 maxPoolSize: 10, // Máximo de conexões no pool
@@ -92,8 +112,23 @@ class DatabaseConnection {
             this.setupEventListeners();
 
             return connection;
-        } catch (error) {
+        } catch (error: any) {
             console.error('❌ Erro ao conectar ao MongoDB:', error);
+
+            // Logs detalhados do erro
+            if (error.code === 18 || error.codeName === 'AuthenticationFailed') {
+                console.error('🔐 [ERRO DE AUTENTICAÇÃO]');
+                console.error('   Possíveis causas:');
+                console.error('   1. Usuário ou senha incorretos');
+                console.error('   2. Usuário não tem permissão no banco de dados especificado');
+                console.error('   3. Banco de autenticação incorreto (tente adicionar ?authSource=admin na URI)');
+                console.error('');
+                console.error('💡 Sugestões:');
+                console.error('   - Verifique as credenciais no MongoDB');
+                console.error('   - Tente: mongodb://user:pass@host:port/database?authSource=admin');
+                console.error('   - Ou conecte sem autenticação se o MongoDB não tiver auth habilitado');
+            }
+
             throw error;
         }
     }
