@@ -2,6 +2,13 @@ import { Elysia, t } from 'elysia';
 import { mAuth } from '../models/mAuth';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
+    // Root /auth endpoint info
+    .get('/', () => ({
+        success: true,
+        message: 'Auth Service Ready',
+        endpoints: ['/login', '/register', '/users']
+    }))
+
     // Login
     .post('/login', async ({ body, set }: any) => {
         try {
