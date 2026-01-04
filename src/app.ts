@@ -3,11 +3,19 @@ import { db } from './config/database';
 import { credentialRoutes } from './routes/credentials';
 import { taskRoutes } from './routes/tasks';
 import { authRoutes } from './routes/auth';
+import { cors } from '@elysiajs/cors';
 
 /**
  * Cria e configura a aplicação Elysia
  */
 export const app = new Elysia()
+    // Configura CORS
+    .use(cors({
+        origin: true, // Allow all origins for development
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN']
+    }))
+
     // Middleware global de logging
     .onRequest(({ request, path }) => {
         const timestamp = new Date().toISOString();

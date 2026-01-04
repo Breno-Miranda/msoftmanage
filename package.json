@@ -10,6 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "elysia": "^0.8.17",
     "mongoose": "^8.1.0"
   },
