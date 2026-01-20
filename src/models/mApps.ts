@@ -24,4 +24,4 @@ const appsSchema = new Schema(
 // Prevent duplicate installation of same app for same user
 appsSchema.index({ userId: 1, appKey: 1 }, { unique: true });
 
-export const mApps = mongoose.model<IApps>('Apps', appsSchema);
+export const mApps = mongoose.model<IApps>('mApps', appsSchema);

@@ -53,4 +53,49 @@ export const appRoutes = new Elysia({ prefix: '/apps' })
             appKey: t.String(),
             userId: t.String()
         })
+    })
+
+    // Verify App Access using Access Token
+    .post('/verify', async ({ body, set }: any) => {
+        try {
+            const { access_token, appKey } = body;
+
+            // 1. Find User by Access Token
+            // Assume Auth model is registered
+            const mAuth = mongoose.model('Auth');
+
+            const user = await mAuth.findOne({ access_token });
+            if (!user) {
+                set.status = 401;
+                return { success: false, error: 'Invalid Access Token' };
+            }
+
+            // 2. Check if User has App installed and active
+            const app = await mApps.findOne({
+                userId: user._id,
+                appKey: appKey,
+                status: 'active'
+            });
+
+            if (!app) {
+                set.status = 403;
+                return { success: false, error: 'Access Denied: App not active or not purchased.' };
+            }
+
+            return {
+                success: true,
+                message: 'Access Granted',
+                user: { id: user._id, email: user.email, name: user.name },
+                appString: appKey
+            };
+
+        } catch (error: any) {
+            set.status = 500;
+            return { success: false, error: error.message };
+        }
+    }, {
+        body: t.Object({
+            access_token: t.String(),
+            appKey: t.String()
+        })
     });
