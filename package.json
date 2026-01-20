@@ -1,6 +1,6 @@
 {
   "name": "bun-mongodb-api",
-  "version": "0.10.10",
+  "version": "0.10.18",
   "description": "API REST robusta com Bun + MongoDB + ElysiaJS",
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
+    "cassandra-driver": "^4.8.0",
     "elysia": "^0.8.17",
     "mongoose": "^8.1.0"
   },

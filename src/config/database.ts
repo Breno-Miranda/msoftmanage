@@ -42,7 +42,7 @@ class DatabaseConnection {
 
         // Se já está conectado, retorna o mongoose
         if (this.isConnected && mongoose.connection.readyState === 1) {
-            console.log('✅ Usando conexão MongoDB existente');
+
             return mongoose;
         }
 
@@ -54,12 +54,7 @@ class DatabaseConnection {
 
         // Log da URI mascarada para debug (esconde a senha)
         const maskedUri = MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
-        console.log('🔍 [DEBUG] Tentando conectar com URI:', maskedUri);
-        console.log('🔍 [DEBUG] Todas as variáveis de ambiente disponíveis:');
-        console.log('   - MONGODB_URI:', maskedUri);
-        console.log('   - PORT:', process.env.PORT);
-        console.log('   - NODE_ENV:', process.env.NODE_ENV);
-        console.log('   - HOSTNAME:', process.env.HOSTNAME);
+
 
         // Cria uma nova promise de conexão
         this.connectionPromise = this.establishConnection(MONGODB_URI);
@@ -82,17 +77,13 @@ class DatabaseConnection {
      */
     private async establishConnection(uri: string): Promise<typeof mongoose> {
         try {
-            console.log('🔄 Conectando ao MongoDB...');
+
 
             // Extrai informações da URI para debug
             const uriMatch = uri.match(/mongodb:\/\/(?:([^:]+):([^@]+)@)?([^:/]+)(?::(\d+))?\/(.+)/);
             if (uriMatch) {
                 const [, user, , host, port, database] = uriMatch;
-                console.log('🔍 [DEBUG] Detalhes da conexão:');
-                console.log(`   - Usuário: ${user || 'sem autenticação'}`);
-                console.log(`   - Host: ${host}`);
-                console.log(`   - Porta: ${port || '27017'}`);
-                console.log(`   - Banco: ${database}`);
+
             }
 
             const connection = await mongoose.connect(uri, {
@@ -104,29 +95,18 @@ class DatabaseConnection {
                 family: 4, // Força IPv4
             });
 
-            console.log('✅ MongoDB conectado com sucesso!');
-            console.log(`📊 Database: ${connection.connection.db.databaseName}`);
-            console.log(`🌐 Host: ${connection.connection.host}`);
+
 
             // Event listeners para monitoramento
             this.setupEventListeners();
 
             return connection;
         } catch (error: any) {
-            console.error('❌ Erro ao conectar ao MongoDB:', error);
+
 
             // Logs detalhados do erro
             if (error.code === 18 || error.codeName === 'AuthenticationFailed') {
-                console.error('🔐 [ERRO DE AUTENTICAÇÃO]');
-                console.error('   Possíveis causas:');
-                console.error('   1. Usuário ou senha incorretos');
-                console.error('   2. Usuário não tem permissão no banco de dados especificado');
-                console.error('   3. Banco de autenticação incorreto (tente adicionar ?authSource=admin na URI)');
-                console.error('');
-                console.error('💡 Sugestões:');
-                console.error('   - Verifique as credenciais no MongoDB');
-                console.error('   - Tente: mongodb://user:pass@host:port/database?authSource=admin');
-                console.error('   - Ou conecte sem autenticação se o MongoDB não tiver auth habilitado');
+
             }
 
             throw error;
@@ -139,17 +119,17 @@ class DatabaseConnection {
      */
     private setupEventListeners(): void {
         mongoose.connection.on('disconnected', () => {
-            console.warn('⚠️  MongoDB desconectado');
+
             this.isConnected = false;
         });
 
         mongoose.connection.on('error', (error) => {
-            console.error('❌ Erro na conexão MongoDB:', error);
+
             this.isConnected = false;
         });
 
         mongoose.connection.on('reconnected', () => {
-            console.log('🔄 MongoDB reconectado');
+
             this.isConnected = true;
         });
 
@@ -168,7 +148,7 @@ class DatabaseConnection {
             await mongoose.connection.close();
             this.isConnected = false;
             this.connectionPromise = null;
-            console.log('👋 Conexão MongoDB fechada');
+
         }
     }
 

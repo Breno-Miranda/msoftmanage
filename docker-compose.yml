@@ -70,6 +70,30 @@ services:
     networks:
       - msoftmanage-network
 
+  # Apache Cassandra (Banco de Dados NoSQL Column-Family)
+  cassandra:
+    image: cassandra:4.1
+    container_name: msoftmanage-cassandra
+    restart: unless-stopped
+    ports:
+      - "9042:9042" # Porta nativa CQL
+    environment:
+      - CASSANDRA_CLUSTER_NAME=MManageCluster
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - HEAP_NEWSIZE=128M
+      - MAX_HEAP_SIZE=1024M
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - msoftmanage-network
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
 networks:
   msoftmanage-network:
     driver: bridge
@@ -80,4 +104,6 @@ volumes:
   mongodb_config:
     driver: local
   uploads:
+    driver: local
+  cassandra_data:
     driver: local

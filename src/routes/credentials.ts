@@ -9,17 +9,43 @@ export const credentialRoutes = new Elysia({ prefix: '/credentials' })
         '/',
         async ({ query }) => {
             try {
-                const { page = '1', limit = '10' } = query as any;
+                const { page = '1', limit = '10', rule, userId } = query as any;
                 const pageNum = parseInt(page);
                 const limitNum = parseInt(limit);
                 const skip = (pageNum - 1) * limitNum;
 
+                const filter: any = {};
+
+                // If userId is present, filter by it
+                if (userId) {
+                    if (rule === 'movida') {
+                        // Legacy/Migration rule: Show user's own + public (no userId)
+                        filter.$or = [
+                            { userId: userId },
+                            { userId: { $exists: false } },
+                            { userId: null }
+                        ];
+                    } else {
+                        // Strict rule: Only show user's own
+                        filter.userId = userId;
+                    }
+                } else {
+                    // No user ID provided - Return empty or public only
+                    // For security, strictly return empty or only explicitly public items
+                    // Current decision: Return empty to prevent data leak
+                    return {
+                        success: true,
+                        data: [],
+                        pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 }
+                    };
+                }
+
                 const [items, total] = await Promise.all([
-                    mCredential.find()
+                    mCredential.find(filter)
                         .limit(limitNum)
                         .skip(skip)
                         .sort({ createdAt: -1 }),
-                    mCredential.countDocuments(),
+                    mCredential.countDocuments(filter),
                 ]);
 
                 return {

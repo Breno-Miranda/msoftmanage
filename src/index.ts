@@ -1,46 +1,29 @@
-import { db } from './config/database';
-import { app } from './app';
+import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
+import { connectMongo } from './config/mongo';
+import { userRoutes } from './modules/users/user.controller';
+import { authRoutes } from './routes/auth';
+import { appRoutes } from './routes/apps';
+import { credentialRoutes } from './routes/credentials';
+import { healthtechRoutes } from './routes/healthtech';
+import { taskRoutes } from './routes/tasks';
 
-/**
- * Inicializa a conexão com o banco de dados
- * Deve ser chamada antes de iniciar o servidor
- */
-async function initializeDatabase() {
-    try {
-        await db.connect();
-    } catch (error) {
-        console.error('❌ Falha ao conectar ao banco de dados:', error);
-        process.exit(1);
-    }
-}
+// 1. Inicializa Conexão com Banco
+await connectMongo();
 
-/**
- * Inicializa a aplicação
- */
-async function start() {
-    try {
-        // Conecta ao banco de dados
-        await initializeDatabase();
+// 2. Cria a Aplicação
+const app = new Elysia()
+    .use(cors()) // Habilita CORS
+    .get('/', () => '🦊 MManage API is Running!')
 
-        // Inicia o servidor
-        const PORT = process.env.PORT || 3000;
-        const HOSTNAME = process.env.HOSTNAME || '0.0.0.0'; // 0.0.0.0 para Docker
+    // 3. Registra os Módulos
+    .use(userRoutes)
+    .use(authRoutes)
+    .use(appRoutes)
+    .use(credentialRoutes)
+    .use(healthtechRoutes)
+    .use(taskRoutes)
 
-        app.listen({
-            port: PORT,
-            hostname: HOSTNAME,
-        }, () => {
-            console.log('\n🚀 Servidor iniciado com sucesso!');
-            console.log(`📡 Rodando em: http://${HOSTNAME}:${PORT}`);
-            console.log(`📚 Documentação: http://localhost:${PORT}/docs`);
-            console.log(`💚 Health Check: http://localhost:${PORT}/health`);
-            console.log(`\n⚡ Powered by Bun + ElysiaJS + MongoDB\n`);
-        });
-    } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
-        process.exit(1);
-    }
-}
+    .listen(3000);
 
-// Inicia a aplicação
-start();
+

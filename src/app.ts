@@ -3,12 +3,15 @@ import { db } from './config/database';
 import { credentialRoutes } from './routes/credentials';
 import { taskRoutes } from './routes/tasks';
 import { authRoutes } from './routes/auth';
+import { healthtechRoutes } from './routes/healthtech';
+import { appRoutes } from './routes/apps';
 import { cors } from '@elysiajs/cors';
 
 /**
  * Cria e configura a aplicação Elysia
  */
 export const app = new Elysia()
+    // ... existing code ...
     // Configura CORS
     .use(cors({
         origin: true, // Allow all origins for development
@@ -17,14 +20,10 @@ export const app = new Elysia()
     }))
 
     // Middleware global de logging
-    .onRequest(({ request, path }) => {
-        const timestamp = new Date().toISOString();
-        console.log(`[${timestamp}] ${request.method} ${path}`);
-    })
+
 
     // Middleware global de tratamento de erros
     .onError(({ code, error, set }) => {
-        console.error('❌ Erro:', error);
 
         // Tratamento específico por tipo de erro
         switch (code) {
@@ -92,6 +91,8 @@ export const app = new Elysia()
     .use(credentialRoutes)
     .use(taskRoutes)
     .use(authRoutes)
+    .use(healthtechRoutes)
+    .use(appRoutes)
 
     // Documentação automática (Swagger)
     .get('/docs', () => ({

@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+
 import { mAuth } from '../models/mAuth';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
@@ -16,6 +17,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
             // Find user (select password explicitly)
             const user = await mAuth.findOne({ email }).select('+password');
+
             if (!user) {
                 set.status = 401;
                 return { success: false, error: 'Credenciais inválidas' };
@@ -36,8 +38,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             return {
                 success: true,
                 user: user,
-                // In a real app, generate a JWT here
-                token: `mock-jwt-token-${user.id}`
+                // Generate a basic bearer token (Base64 of id:timestamp)
+                token: Buffer.from(`${user.id}:${Date.now()}`).toString('base64')
             };
 
         } catch (error: any) {
