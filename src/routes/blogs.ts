@@ -1,10 +1,22 @@
-import { Elysia, t } from 'elysia';
+import { Elysia } from 'elysia';
 import { mBlog } from '../models/mBlogs';
+import { cache } from '../config/redis';
+
+const CACHE_KEY_BLOGS = 'blogs:published';
+const CACHE_TTL = 3600; // 1 hora
 
 export const blogRoutes = new Elysia({ prefix: '/blogs' })
     .get('/', async () => {
         try {
+            // Tenta pegar do Cache
+            const cached = await cache.get(CACHE_KEY_BLOGS);
+            if (cached) return { success: true, data: cached, fromCache: true };
+
             const blogs = await mBlog.find({ published: true }).sort({ createdAt: -1 });
+            
+            // Salva no Cache
+            await cache.set(CACHE_KEY_BLOGS, blogs, CACHE_TTL);
+            
             return { success: true, data: blogs };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -21,6 +33,10 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
     })
     .get('/:slug', async ({ params }: any) => {
         try {
+            const cacheKey = `blog:slug:${params.slug}`;
+            const cached = await cache.get(cacheKey);
+            if (cached) return { success: true, data: cached, fromCache: true };
+
             const blog = await mBlog.findOne({ slug: params.slug });
             if (!blog) {
                 return { success: false, error: 'Post não encontrado' };
@@ -28,6 +44,9 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
             // Increment views
             blog.views += 1;
             await blog.save();
+
+            // Cache individual
+            await cache.set(cacheKey, blog, CACHE_TTL);
 
             return { success: true, data: blog };
         } catch (error: any) {
@@ -38,25 +57,15 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
         try {
             const newBlog = new mBlog(body);
             await newBlog.save();
+
+            // Invalida cache de listagem
+            await cache.del(CACHE_KEY_BLOGS);
+
             return { success: true, data: newBlog };
         } catch (error: any) {
             set.status = 500;
             return { success: false, error: error.message };
         }
-    }, {
-        body: t.Object({
-            title: t.String(),
-            slug: t.String(),
-            subtitle: t.Optional(t.String()),
-            content: t.String(),
-            description: t.Optional(t.String()),
-            author: t.String(),
-            imageUrl: t.Optional(t.String()),
-            tags: t.Optional(t.Array(t.String())),
-            category: t.Optional(t.String()),
-            published: t.Optional(t.Boolean()),
-            featured: t.Optional(t.Boolean())
-        })
     })
     .put('/:id', async ({ params, body, set }: any) => {
         try {
@@ -65,6 +74,11 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
                 set.status = 404;
                 return { success: false, error: 'Post não encontrado' };
             }
+
+            // Invalida caches
+            await cache.del(CACHE_KEY_BLOGS);
+            await cache.del(`blog:slug:${blog.slug}`);
+
             return { success: true, data: blog };
         } catch (error: any) {
             set.status = 500;
@@ -78,6 +92,11 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
                 set.status = 404;
                 return { success: false, error: 'Post não encontrado' };
             }
+
+            // Invalida caches
+            await cache.del(CACHE_KEY_BLOGS);
+            if (blog.slug) await cache.del(`blog:slug:${blog.slug}`);
+
             return { success: true, message: 'Post removido' };
         } catch (error: any) {
             set.status = 500;

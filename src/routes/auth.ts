@@ -17,7 +17,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             const { email, password } = body;
 
             // Find user (select password explicitly)
-            const user = await mAuth.findOne({ email }).select('+password');
+            const user = await mAuth.findOne({ 
+                $or: [{ email: email }, { name: email }] 
+            }).select('+password');
 
             if (!user) {
                 set.status = 401;

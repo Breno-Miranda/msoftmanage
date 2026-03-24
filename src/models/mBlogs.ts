@@ -10,6 +10,8 @@ export interface IMBlog extends Document {
     imageUrl?: string;
     tags: string[];
     category?: string;
+    /** Múltiplas áreas/categorias (CMS); `category` permanece como legado / primeira para listagens antigas */
+    categories?: string[];
     published: boolean;
     featured: boolean;
     views: number;
@@ -28,6 +30,7 @@ const mBlogSchema = new Schema<IMBlog>(
         imageUrl: { type: String },
         tags: [{ type: String }],
         category: { type: String },
+        categories: [{ type: String }],
         published: { type: Boolean, default: false },
         featured: { type: Boolean, default: false },
         views: { type: Number, default: 0 }

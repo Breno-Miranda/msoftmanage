@@ -1,18 +1,20 @@
 {
   "name": "bun-mongodb-api",
-  "version": "0.10.19",
+  "version": "0.10.35",
   "description": "API REST robusta com Bun + MongoDB + ElysiaJS",
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
-    "test": "bun test"
+    "test": "bun test",
+    "seed:local": "bun run src/scripts/seed.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "cassandra-driver": "^4.8.0",
     "elysia": "^0.8.17",
+    "ioredis": "^5.4.1",
     "mongoose": "^8.1.0"
   },
   "devDependencies": {

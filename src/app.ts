@@ -5,6 +5,8 @@ import { taskRoutes } from './routes/tasks';
 import { authRoutes } from './routes/auth';
 import { healthtechRoutes } from './routes/healthtech';
 import { appRoutes } from './routes/apps';
+import { blogRoutes } from './routes/blogs';
+import { logRoutes } from './routes/logs';
 import { cors } from '@elysiajs/cors';
 
 /**
@@ -93,6 +95,8 @@ export const app = new Elysia()
     .use(authRoutes)
     .use(healthtechRoutes)
     .use(appRoutes)
+    .use(blogRoutes)
+    .use(logRoutes)
 
     // Documentação automática (Swagger)
     .get('/docs', () => ({

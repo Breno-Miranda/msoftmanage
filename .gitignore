@@ -1,20 +1,7 @@
-# Bun
-node_modules
-*.log
-dist
+core
 .env
+node_modules/
 
-# OS
-.DS_Store
-Thumbs.db
+# System Core Dumps
+core
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# Testing
-coverage
-*.test.ts.snap
