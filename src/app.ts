@@ -16,9 +16,15 @@ export const app = new Elysia()
     // ... existing code ...
     // Configura CORS
     .use(cors({
-        origin: true, // Allow all origins for development
+        origin: [
+            'https://mirandasoft.com.br',
+            'https://www.mirandasoft.com.br',
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:3001'
+        ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN']
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN', 'Origin']
     }))
 
     // Middleware global de logging
