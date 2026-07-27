@@ -16,6 +16,7 @@ import { mLeadsRequestRoutes } from './modules/mLeadsRequest';
 import { productRoutes } from './modules/products';
 import { erpRoutes } from './modules/erp';
 import { erpFinanceRoutes } from './modules/erpFinance';
+import { restaurantRoutes } from './modules/restaurant';
 import { mjsonRoutes } from './routes/mjson';
 import { consultorasRoutes } from './routes/consultoras';
 import { bvaOrderRoutes } from './routes/bvaOrders';
@@ -115,6 +116,7 @@ const app = new Elysia()
     .use(productRoutes)
     .use(erpRoutes)
     .use(erpFinanceRoutes)
+    .use(restaurantRoutes)
     .use(mjsonRoutes)
     .use(consultorasRoutes)
     .use(bvaOrderRoutes)
