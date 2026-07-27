@@ -10,6 +10,7 @@ import { logRoutes } from './routes/logs';
 import { mLeadsRequestRoutes } from './modules/mLeadsRequest';
 import { productRoutes } from './modules/products';
 import { erpRoutes } from './modules/erp';
+import { erpFinanceRoutes } from './modules/erpFinance';
 import { mjsonRoutes } from './routes/mjson';
 import { bvaOrderRoutes } from './routes/bvaOrders';
 import { bvaProspectRoutes } from './routes/bvaProspects';
@@ -35,7 +36,7 @@ export const app = new Elysia()
             'http://localhost:3001'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN', 'Origin']
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN', 'Origin', 'X-Organization-Id', 'X-Organization-Unit-Id']
     }))
 
     // Middleware global de logging
@@ -117,6 +118,7 @@ export const app = new Elysia()
     .use(mLeadsRequestRoutes)
     .use(productRoutes)
     .use(erpRoutes)
+    .use(erpFinanceRoutes)
     .use(mjsonRoutes)
     .use(bvaOrderRoutes)
     .use(bvaProspectRoutes)
