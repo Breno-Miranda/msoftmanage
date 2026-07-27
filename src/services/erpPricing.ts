@@ -1,5 +1,5 @@
 import { mErp } from '../models/mErp';
-import type { IInsumo, IProdutoFabril, IProdutoFilamento } from '../models/mErp';
+import type { IErp, IInsumo, IProdutoFabril, IProdutoFilamento } from '../models/mErp';
 
 export interface PrecificacaoResult {
     custoMateriais: number;   // custo de filamento + embalagem + acessórios
@@ -20,6 +20,23 @@ export async function calcularPrecificacao(
     appKey: string,
     prod: IProdutoFabril
 ): Promise<PrecificacaoResult> {
+    const insumoIds = getProdutoInsumoIds(prod);
+    const insumos = insumoIds.length
+        ? await mErp.find({
+            uuid: { $in: insumoIds },
+            appKey,
+            tipo: 'insumo',
+            deletedAt: null,
+        })
+        : [];
+
+    return calcularPrecificacaoComInsumos(prod, new Map(insumos.map(insumo => [insumo.uuid, insumo])));
+}
+
+export function calcularPrecificacaoComInsumos(
+    prod: IProdutoFabril,
+    insumosById: Map<string, Pick<IErp, 'uuid' | 'data'>>
+): PrecificacaoResult {
     const detalhes: PrecificacaoResult['detalhes'] = {
         insumo: null,
         insumos: [],
@@ -32,7 +49,7 @@ export async function calcularPrecificacao(
 
     const filamentos = getProdutoFilamentos(prod);
     for (const filamento of filamentos) {
-        const ins = await mErp.findOne({ uuid: filamento.insumoId, appKey, tipo: 'insumo' });
+        const ins = insumosById.get(filamento.insumoId);
         if (ins) {
             const d = ins.data as IInsumo;
             const custo = filamento.gramas * d.custoPorUnidade;
@@ -44,7 +61,7 @@ export async function calcularPrecificacao(
 
     // Embalagem
     if (prod.embalagemId) {
-        const emb = await mErp.findOne({ uuid: prod.embalagemId, appKey, tipo: 'insumo' });
+        const emb = insumosById.get(prod.embalagemId);
         if (emb) {
             const d = emb.data as IInsumo;
             custoMateriais += d.custoPorUnidade;
@@ -54,7 +71,7 @@ export async function calcularPrecificacao(
 
     // Acessórios extras
     for (const accId of prod.acessoriosIds || []) {
-        const acc = await mErp.findOne({ uuid: accId, appKey, tipo: 'insumo' });
+        const acc = insumosById.get(accId);
         if (acc) {
             const d = acc.data as IInsumo;
             custoMateriais += d.custoPorUnidade;
@@ -92,4 +109,12 @@ function getProdutoFilamentos(prod: IProdutoFabril): IProdutoFilamento[] {
     return prod.insumoId && prod.pesoGramas > 0
         ? [{ insumoId: prod.insumoId, gramas: Number(prod.pesoGramas) }]
         : [];
+}
+
+export function getProdutoInsumoIds(prod: IProdutoFabril): string[] {
+    return [...new Set([
+        ...getProdutoFilamentos(prod).map(filamento => filamento.insumoId),
+        prod.embalagemId,
+        ...(prod.acessoriosIds || []),
+    ].filter((id): id is string => Boolean(id)))];
 }
