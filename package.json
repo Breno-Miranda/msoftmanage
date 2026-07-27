@@ -8,6 +8,7 @@
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "test": "bun test",
+    "test:erp-finance": "bun test tests/erp-finance-context.test.ts",
     "seed:local": "bun run src/scripts/seed.ts",
     "seed:bva-erp": "bun run src/scripts/seed-bva-erp.ts",
     "seed:bva-prospects": "bun run src/scripts/seed-bva-prospects.ts",
