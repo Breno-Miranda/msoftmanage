@@ -15,6 +15,7 @@ import { restaurantRoutes } from './modules/restaurant';
 import { mjsonRoutes } from './routes/mjson';
 import { bvaOrderRoutes } from './routes/bvaOrders';
 import { bvaProspectRoutes } from './routes/bvaProspects';
+import { catalogRoutes } from './routes/catalog';
 import { cors } from '@elysiajs/cors';
 
 /**
@@ -124,6 +125,7 @@ export const app = new Elysia()
     .use(mjsonRoutes)
     .use(bvaOrderRoutes)
     .use(bvaProspectRoutes)
+    .use(catalogRoutes)
 
     // Documentação automática (Swagger)
     .get('/docs', () => ({
