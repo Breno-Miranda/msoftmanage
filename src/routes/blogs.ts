@@ -1,10 +1,21 @@
 import { Elysia } from 'elysia';
 import { mBlog } from '../models/mBlogs';
+import { mBlogCategory } from '../models/mBlogCategory';
 import { cache } from '../config/redis';
 import { requireAuth } from '../middleware/requireAuth';
 
 const CACHE_KEY_BLOGS = 'blogs:published';
 const CACHE_TTL = 3600; // 1 hora
+
+// Categorias padrao semeadas na primeira consulta, quando a colecao esta vazia.
+const DEFAULT_BLOG_CATEGORIES = ['Tecnologia', 'White Label', 'Produtividade', 'Design', 'Negócios'];
+
+const ensureDefaultCategories = async () => {
+    const count = await mBlogCategory.estimatedDocumentCount();
+    if (count === 0) {
+        await mBlogCategory.insertMany(DEFAULT_BLOG_CATEGORIES.map((name) => ({ name })));
+    }
+};
 
 export const blogRoutes = new Elysia({ prefix: '/blogs' })
     .get('/', async () => {
@@ -31,6 +42,84 @@ export const blogRoutes = new Elysia({ prefix: '/blogs' })
             const blogs = await mBlog.find().sort({ createdAt: -1 });
             return { success: true, data: blogs };
         } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    })
+    .get('/categories', async ({ set }: any) => {
+        try {
+            await ensureDefaultCategories();
+            const categories = await mBlogCategory.find().sort({ name: 1 });
+            return { success: true, data: categories };
+        } catch (error: any) {
+            set.status = 500;
+            return { success: false, error: error.message };
+        }
+    })
+    .post('/categories', async (ctx: any) => {
+        const jwt = requireAuth(ctx);
+        if (!jwt) return { success: false, error: 'Não autorizado' };
+        const { body, set } = ctx;
+        try {
+            const name = String(body && body.name ? body.name : '').trim();
+            if (!name || name.length > 80) {
+                set.status = 400;
+                return { success: false, error: 'Informe um nome de categoria válido (até 80 caracteres).' };
+            }
+            const existing = await mBlogCategory.findOne({ name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+            if (existing) {
+                set.status = 409;
+                return { success: false, error: 'Categoria já existe.' };
+            }
+            const category = await mBlogCategory.create({ name });
+            set.status = 201;
+            return { success: true, data: category };
+        } catch (error: any) {
+            set.status = 500;
+            return { success: false, error: error.message };
+        }
+    })
+    .put('/categories/:id', async (ctx: any) => {
+        const jwt = requireAuth(ctx);
+        if (!jwt) return { success: false, error: 'Não autorizado' };
+        const { params, body, set } = ctx;
+        try {
+            const name = String(body && body.name ? body.name : '').trim();
+            if (!name || name.length > 80) {
+                set.status = 400;
+                return { success: false, error: 'Informe um nome de categoria válido (até 80 caracteres).' };
+            }
+            const duplicate = await mBlogCategory.findOne({
+                _id: { $ne: params.id },
+                name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+            });
+            if (duplicate) {
+                set.status = 409;
+                return { success: false, error: 'Categoria já existe.' };
+            }
+            const category = await mBlogCategory.findByIdAndUpdate(params.id, { name }, { new: true });
+            if (!category) {
+                set.status = 404;
+                return { success: false, error: 'Categoria não encontrada.' };
+            }
+            return { success: true, data: category };
+        } catch (error: any) {
+            set.status = 500;
+            return { success: false, error: error.message };
+        }
+    })
+    .delete('/categories/:id', async (ctx: any) => {
+        const jwt = requireAuth(ctx);
+        if (!jwt) return { success: false, error: 'Não autorizado' };
+        const { params, set } = ctx;
+        try {
+            const category = await mBlogCategory.findByIdAndDelete(params.id);
+            if (!category) {
+                set.status = 404;
+                return { success: false, error: 'Categoria não encontrada.' };
+            }
+            return { success: true, message: 'Categoria removida' };
+        } catch (error: any) {
+            set.status = 500;
             return { success: false, error: error.message };
         }
     })
