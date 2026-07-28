@@ -2,7 +2,6 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { connectMongo } from './config/mongo';
 import { presignUpload, readUpload } from './services/uploadService';
-import { userRoutes } from './modules/users/user.controller';
 import { authRoutes } from './routes/auth';
 import { appRoutes } from './routes/apps';
 import { catalogRoutes, ensureCatalogSeeded } from './routes/catalog';
@@ -16,6 +15,7 @@ import { mLeadsRequestRoutes } from './modules/mLeadsRequest';
 import { productRoutes } from './modules/products';
 import { erpRoutes } from './modules/erp';
 import { erpFinanceRoutes } from './modules/erpFinance';
+import { restaurantRoutes } from './modules/restaurant';
 import { mjsonRoutes } from './routes/mjson';
 import { consultorasRoutes } from './routes/consultoras';
 import { bvaOrderRoutes } from './routes/bvaOrders';
@@ -101,7 +101,6 @@ const app = new Elysia()
     })
 
     // 3. Registra os Módulos
-    .use(userRoutes)
     .use(authRoutes)
     .use(appRoutes) // Msite Apps (Install/Verify)
     .use(catalogRoutes) // Marketplace Catalog
@@ -115,6 +114,7 @@ const app = new Elysia()
     .use(productRoutes)
     .use(erpRoutes)
     .use(erpFinanceRoutes)
+    .use(restaurantRoutes)
     .use(mjsonRoutes)
     .use(consultorasRoutes)
     .use(bvaOrderRoutes)

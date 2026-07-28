@@ -22,6 +22,11 @@ m-manage/
 │   │   ├── mContent.ts             # Conteúdo dinâmico
 │   │   ├── mCredential.ts          # Credenciais/API keys
 │   │   ├── mLeads.ts               # Leads/contatos
+│   │   ├── mRestaurantMenuCategory.ts   # Restaurante: categorias do cardápio (S021)
+│   │   ├── mRestaurantMenuItem.ts       # Restaurante: itens do cardápio (S021)
+│   │   ├── mRestaurantIngredient.ts     # Restaurante: ingredientes/estoque (S021)
+│   │   ├── mRestaurantTable.ts          # Restaurante: mesas (S021)
+│   │   ├── mRestaurantOrder.ts          # Restaurante: pedidos/comandas (S021)
 │   │   └── healthtech/             # Módulo Farmácia 4.0
 │   ├── modules/
 │   │   ├── users/                  # CRUD usuários + backup Cassandra
@@ -29,9 +34,16 @@ m-manage/
 │   │   ├── products/               # Produtos unificados (S001)
 │   │   │   ├── index.ts
 │   │   │   └── product.controller.ts
-│   │   └── erp/                    # ERP multi-app (S002)
+│   │   ├── erp/                    # ERP multi-app (S002)
+│   │   │   ├── index.ts
+│   │   │   └── erp.controller.ts
+│   │   └── restaurant/             # Gestão de restaurantes (S021)
 │   │       ├── index.ts
-│   │       └── erp.controller.ts
+│   │       ├── restaurant.controller.ts
+│   │       └── services/           # Serviços do módulo restaurante
+│   │           ├── stock.service.ts
+│   │           ├── order.service.ts
+│   │           └── report.service.ts
 │   ├── routes/
 │   │   ├── auth.ts                 # POST /auth/login, /register
 │   │   ├── apps.ts                 # GET/POST /apps
@@ -83,4 +95,5 @@ m-manage/
 | `/leads` | mLeadsRequestRoutes |
 | `/products` | productRoutes (S001) |
 | `/erp` | erpRoutes (S002) |
+| `/restaurant` | restaurantRoutes (S021) |
 | `/mjson` | mjsonRoutes |

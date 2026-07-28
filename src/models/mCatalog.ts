@@ -10,6 +10,7 @@ export interface ICatalog extends Document {
     icon: string;
     category?: string;
     features?: string[];
+    active: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -24,7 +25,10 @@ const catalogSchema = new Schema(
         type: { type: String, enum: ['free', 'subscription', 'one-time'], default: 'free' },
         icon: { type: String, default: 'bi-box' },
         category: { type: String },
-        features: { type: [String], default: [] }
+        features: { type: [String], default: [] },
+        // Soft-delete: itens antigos (sem o campo gravado) continuam ativos
+        // porque as queries publicas filtram com { active: { $ne: false } }.
+        active: { type: Boolean, default: true }
     },
     {
         timestamps: true,
