@@ -3,6 +3,7 @@ import { mCatalog } from '../models/mCatalog';
 import { requireAuth, requireMasterAdmin } from '../middleware/requireAuth';
 
 const APP_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const PUBLIC_CATALOG_FIELDS = 'name appKey description type icon category features';
 
 const catalogAdminCreateBody = t.Object({
     name: t.String({ minLength: 1, maxLength: 120 }),
@@ -73,7 +74,10 @@ export const catalogRoutes = new Elysia({ prefix: '/catalog' })
     // List all available apps/products — apenas itens ativos
     .get('/', async ({ set }) => {
         try {
-            const items = await mCatalog.find({ active: { $ne: false } }).sort({ price: 1 });
+            const items = await mCatalog
+                .find({ active: { $ne: false } })
+                .select(PUBLIC_CATALOG_FIELDS)
+                .sort({ name: 1 });
             return { success: true, data: items };
         } catch (error: any) {
             set.status = 500;
@@ -175,7 +179,9 @@ export const catalogRoutes = new Elysia({ prefix: '/catalog' })
     // Get specific app by key — apenas itens ativos
     .get('/:key', async ({ params, set }) => {
         try {
-            const item = await mCatalog.findOne({ appKey: params.key, active: { $ne: false } });
+            const item = await mCatalog
+                .findOne({ appKey: params.key, active: { $ne: false } })
+                .select(PUBLIC_CATALOG_FIELDS);
             if (!item) {
                 set.status = 404;
                 return { success: false, error: 'App not found' };
