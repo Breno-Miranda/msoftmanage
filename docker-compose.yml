@@ -50,7 +50,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      MONGODB_URI: mongodb://mongodb:27017/bun-api
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/bun-api}
     depends_on:
       mongodb:
         condition: service_healthy
