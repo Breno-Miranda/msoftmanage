@@ -22,10 +22,19 @@ import { bvaOrderRoutes } from './routes/bvaOrders';
 import { bvaProspectRoutes } from './routes/bvaProspects';
 import { bvaCategoriaRoutes } from './routes/bvaCategorias';
 import { bvaCatalogAccessRoutes } from './routes/bvaCatalogAccess';
+import { rabbitMQ } from './services/rabbitmq.service';
+import { persistClientFormEvent } from './modules/clientForms/consumer';
 
 // 1. Inicializa Conexão com Banco
 await connectMongo();
 await ensureCatalogSeeded();
+
+if (process.env.CLIENT_FORM_CONSUMER_ENABLED === 'true') {
+    await rabbitMQ.consume('msoft-form-client', persistClientFormEvent, {
+        queue: 'msoft-form-client',
+        durable: true,
+    });
+}
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -124,3 +133,11 @@ const app = new Elysia()
 
 const listenPort = Number(process.env.PORT);
 app.listen(Number.isFinite(listenPort) && listenPort > 0 ? listenPort : 3000);
+
+const shutdown = async () => {
+    await rabbitMQ.close();
+    process.exit(0);
+};
+
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
