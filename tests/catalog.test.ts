@@ -21,13 +21,14 @@ describe('Catalog Admin API', () => {
     const regularEmail = `catalog_regular_${runId}@msoft.com.br`;
     const itemKey = `catalog-item-${runId}`;
     const inactiveKey = `catalog-inactive-${runId}`;
+    const publicKey = `catalog-public-${runId}`;
     let masterToken = '';
     let regularToken = '';
 
     beforeAll(async () => {
         await db.connect();
         await mAuth.deleteMany({ email: { $in: [masterEmail, regularEmail] } });
-        await mCatalog.deleteMany({ appKey: { $in: [itemKey, inactiveKey] } });
+        await mCatalog.deleteMany({ appKey: { $in: [itemKey, inactiveKey, publicKey] } });
 
         const password = await Bun.password.hash('catalog-password-123', { algorithm: 'argon2id' });
         const [master, regular] = await Promise.all([
@@ -60,21 +61,33 @@ describe('Catalog Admin API', () => {
             description: 'Item desativado para testar a visibilidade.',
             active: false,
         });
+        await mCatalog.create({
+            name: 'Public Catalog App',
+            appKey: publicKey,
+            description: 'Item para validar o contrato público.',
+            type: 'subscription',
+            price: 49.9,
+            currency: 'BRL',
+        });
     });
 
     afterAll(async () => {
         await mAuth.deleteMany({ email: { $in: [masterEmail, regularEmail] } });
-        await mCatalog.deleteMany({ appKey: { $in: [itemKey, inactiveKey] } });
+        await mCatalog.deleteMany({ appKey: { $in: [itemKey, inactiveKey, publicKey] } });
         await db.disconnect();
     });
 
-    test('GET /catalog lists only active items', async () => {
+    test('GET /catalog lists only active items without commercial fields', async () => {
         const response = await app.handle(new Request('http://localhost:3000/catalog'));
         const data: any = await response.json();
 
         expect(response.status).toBe(200);
         expect(data.success).toBe(true);
         expect(data.data.map((item: any) => item.appKey)).not.toContain(inactiveKey);
+        for (const item of data.data) {
+            expect(item).not.toHaveProperty('price');
+            expect(item).not.toHaveProperty('currency');
+        }
     });
 
     test('GET /catalog/:key returns 404 for an inactive item', async () => {
@@ -83,6 +96,17 @@ describe('Catalog Admin API', () => {
 
         expect(response.status).toBe(404);
         expect(data.success).toBe(false);
+    });
+
+    test('GET /catalog/:key omits commercial fields for an active paid item', async () => {
+        const response = await app.handle(new Request(`http://localhost:3000/catalog/${publicKey}`));
+        const data: any = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.data).toMatchObject({ appKey: publicKey, name: 'Public Catalog App', type: 'subscription' });
+        expect(data.data).not.toHaveProperty('price');
+        expect(data.data).not.toHaveProperty('currency');
     });
 
     test('GET /catalog/admin rejects requests without authentication', async () => {
