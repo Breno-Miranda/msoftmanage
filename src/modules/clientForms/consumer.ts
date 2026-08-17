@@ -6,7 +6,7 @@ type ClientFormEvent = {
     eventVersion: 1;
     occurredAt: string;
     source: string;
-    lead: { name: string; email: string; phone: string; message: string };
+    lead: { name: string; email?: string; phone: string; message: string };
     consent: { granted: true; textVersion: string };
 };
 
@@ -25,7 +25,7 @@ const isValidEvent = (event: unknown): event is ClientFormEvent => {
         && typeof value.source === 'string'
         && !Number.isNaN(Date.parse(value.occurredAt))
         && validText(value.lead?.name, 120)
-        && validText(value.lead?.email, 180)
+        && (value.lead?.email === undefined || validText(value.lead.email, 180))
         && validText(value.lead?.phone, 30)
         && validText(value.lead?.message, 3000)
         && value.consent?.granted === true
@@ -34,6 +34,7 @@ const isValidEvent = (event: unknown): event is ClientFormEvent => {
 
 export const persistClientFormEvent = async (event: unknown, repository: ClientFormRepository = ClientForm) => {
     if (!isValidEvent(event)) throw new Error('Evento client.form.submitted inválido');
+    const email = event.lead.email?.trim().toLowerCase();
     await repository.updateOne(
         { eventId: event.eventId },
         {
@@ -41,7 +42,7 @@ export const persistClientFormEvent = async (event: unknown, repository: ClientF
                 eventId: event.eventId,
                 source: event.source,
                 name: event.lead.name.trim(),
-                email: event.lead.email.trim().toLowerCase(),
+                ...(email ? { email } : {}),
                 phone: event.lead.phone.trim(),
                 message: event.lead.message.trim(),
                 consentVersion: event.consent.textVersion,

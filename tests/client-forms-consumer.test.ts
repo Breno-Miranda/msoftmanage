@@ -30,6 +30,34 @@ test('persiste uma única vez o evento válido de formulário público por event
     }, { upsert: true }]]);
 });
 
+test('persiste evento de formulário público sem e-mail', async () => {
+    const calls: any[][] = [];
+    const repository = {
+        updateOne: async (...args: any[]) => {
+            calls.push(args);
+            return { acknowledged: true, upsertedCount: 1 };
+        },
+    };
+    const event = {
+        eventId: '5ea8ec3e-bf02-4a96-b388-a0cac09e60de',
+        eventType: 'client.form.submitted',
+        eventVersion: 1,
+        occurredAt: '2026-08-04T00:00:00.000Z',
+        source: 'padrao-engenharia',
+        lead: { name: 'Ana Silva', phone: '11999999999', message: 'Quero uma proposta comercial.' },
+        consent: { granted: true, textVersion: 'public-client-form-v1' },
+    };
+
+    await persistClientFormEvent(event, repository);
+
+    expect(calls[0][1].$setOnInsert).toEqual(expect.objectContaining({
+        eventId: event.eventId,
+        name: 'Ana Silva',
+        phone: '11999999999',
+    }));
+    expect(calls[0][1].$setOnInsert).not.toHaveProperty('email');
+});
+
 test('rejeita evento de formulário inválido antes de persistir', async () => {
     let called = false;
     await expect(persistClientFormEvent({ eventId: 'invalid' }, {
