@@ -28,6 +28,7 @@ export const app = new Elysia()
             'https://mirandasoft.com.br',
             'https://www.mirandasoft.com.br',
             'https://studiobva.mirandasoft.com.br',
+            'https://studiobva.com.br',
             'http://m-manage.local:3000',
             'http://m-manage.local',
             'http://m-bva.local:3000',

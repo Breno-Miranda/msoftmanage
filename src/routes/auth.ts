@@ -915,6 +915,41 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         }
     })
 
+    // Contexto read-only para entrada SSO de uma aplicação. A autorização é
+    // calculada no servidor; o cliente nunca infere acesso BVA pela presença do JWT.
+    .get('/context/:appKey', async (ctx: any) => {
+        const payload = await requireActiveUser(ctx);
+        if (!payload) return { success: false, error: 'Não autenticado' };
+
+        const appKey = normalizeAppKey(ctx.params.appKey);
+        if (!APP_KEY_PATTERN.test(appKey)) {
+            ctx.set.status = 400;
+            return { success: false, error: 'Aplicação inválida' };
+        }
+
+        const user = await mAuth.findById(payload.sub);
+        if (!user) {
+            ctx.set.status = 404;
+            return { success: false, error: 'Usuário não encontrado' };
+        }
+
+        const isAdmin = Array.isArray(payload.roles) && payload.roles.includes('admin');
+        const access = isAdmin ? null : await mAppAccess.findOne({ userId: payload.sub, appKey }).lean();
+        if (!isAdmin && !access) {
+            ctx.set.status = 403;
+            return { success: false, error: 'Sem acesso à aplicação' };
+        }
+
+        return {
+            success: true,
+            data: {
+                appKey,
+                role: isAdmin ? 'owner' : access.role,
+                user: user.toJSON(),
+            },
+        };
+    })
+
     // Auto-atualizacao do proprio perfil (nome/senha). Diferente do CRUD de
     // admin: qualquer usuario ativo pode chamar para si mesmo, sem precisar
     // ser Admin Master. Trocar a senha invalida a sessao atual, como no CRUD.

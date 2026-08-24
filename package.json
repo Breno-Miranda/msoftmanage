@@ -12,7 +12,8 @@
     "seed:local": "bun run src/scripts/seed.ts",
     "seed:bva-erp": "bun run src/scripts/seed-bva-erp.ts",
     "seed:bva-prospects": "bun run src/scripts/seed-bva-prospects.ts",
-    "seed:users": "bun run src/scripts/seed-users.ts"
+    "seed:users": "bun run src/scripts/seed-users.ts",
+    "seed:mcursos": "bun run src/scripts/seed-mcursos.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",

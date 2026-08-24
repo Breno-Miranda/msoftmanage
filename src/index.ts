@@ -24,6 +24,7 @@ import { bvaCategoriaRoutes } from './routes/bvaCategorias';
 import { bvaCatalogAccessRoutes } from './routes/bvaCatalogAccess';
 import { rabbitMQ } from './services/rabbitmq.service';
 import { persistClientFormEvent } from './modules/clientForms/consumer';
+import { mCursosRoutes } from './modules/mCursos';
 
 // 1. Inicializa Conexão com Banco
 await connectMongo();
@@ -42,6 +43,7 @@ const PROD_ORIGINS = [
     'https://mirandasoft.com.br',
     'https://www.mirandasoft.com.br',
     'https://studiobva.mirandasoft.com.br',
+    'https://studiobva.com.br',
     'https://padraoengenhariarn.com.br',
     'https://www.padraoengenhariarn.com.br',
 ];
@@ -49,7 +51,7 @@ const PROD_ORIGINS = [
 // Qualquer porta de localhost/127.0.0.1/*.local usado pelo stack local é liberada — são sempre
 // origens de dev local, nunca de terceiros, então não há por que travar em uma
 // whitelist fixa de portas (cada nova ferramenta local usa uma porta diferente).
-const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1|m-manage\.local|m-bva\.local)(:\d+)?$/;
+const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1|m-manage\.local|m-bva\.local|m-cursos\.local)(:\d+)?$/;
 
 // 2. Cria a Aplicação
 const app = new Elysia()
@@ -131,7 +133,8 @@ const app = new Elysia()
     .use(bvaOrderRoutes)
     .use(bvaProspectRoutes)
     .use(bvaCategoriaRoutes)
-    .use(bvaCatalogAccessRoutes);
+    .use(bvaCatalogAccessRoutes)
+    .use(mCursosRoutes);
 
 const listenPort = Number(process.env.PORT);
 app.listen(Number.isFinite(listenPort) && listenPort > 0 ? listenPort : 3000);
