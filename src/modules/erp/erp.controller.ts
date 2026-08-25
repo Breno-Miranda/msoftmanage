@@ -984,19 +984,37 @@ const maquinaRoutes = new Elysia({ prefix: '/maquinas' })
 
 const kardexRoutes = new Elysia({ prefix: '/kardex' })
 
-    // GET /erp/kardex?appKey=&tipo=&subtipo=&limit= — viewer+
+    // GET /erp/kardex?appKey=&tipo=&subtipo=&limit=&page= — viewer+
     .get('/', async (ctx: any) => {
         const guard = await checkTenantAccess(ctx, 'viewer');
         if (guard) return guard;
-        const { appKey, tipo, subtipo, referenciaId, limit = '50' } = ctx.query as Record<string, string>;
+        const { appKey, tipo, subtipo, referenciaId, limit = '50', page = '1' } = ctx.query as Record<string, string>;
         const filter: Record<string, any> = { appKey, tipo: 'kardex' };
         if (tipo) filter['data.tipo'] = tipo;
         if (subtipo) filter['data.subtipo'] = subtipo;
         if (referenciaId) filter['data.referenciaId'] = referenciaId;
-        const items = await mErp.find(filter)
+        const requestedLimit = Number.parseInt(limit, 10);
+        const pageSize = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, requestedLimit)) : 50;
+        const requestedPage = Number.parseInt(page, 10);
+        const currentPage = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+        const [items, total] = await Promise.all([
+            mErp.find(filter)
             .sort({ createdAt: -1 })
-            .limit(Math.min(200, parseInt(limit)));
-        return { success: true, count: items.length, data: items.map(flat) };
+            .skip((currentPage - 1) * pageSize)
+            .limit(pageSize),
+            mErp.countDocuments(filter),
+        ]);
+        return {
+            success: true,
+            count: items.length,
+            data: items.map(flat),
+            pagination: {
+                page: currentPage,
+                limit: pageSize,
+                total,
+                pages: Math.ceil(total / pageSize),
+            },
+        };
     })
 
     // GET /erp/kardex/resumo?appKey= — viewer+ (saldo financeiro)
