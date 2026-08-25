@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { mErp } from '../../models/mErp';
+import { mBvaOrder } from '../../models/mBvaOrder';
 import type { IInsumo, IInsumoCor, IProdutoAttachment, IProdutoFabril, IProdutoFilamento, IProdutoVideo, IKardex, IErpConfig, IErpConfigRedesSociais, IMaquina, ErpTipo } from '../../models/mErp';
 import type { IProductImage } from '../../models/mProduct';
 import { checkTenantAccess } from '../../middleware/tenantPlugin';
@@ -141,6 +142,11 @@ async function findItem(uuid: string, tipo: ErpTipo, ctx: any, minRole: 'viewer'
 }
 
 const DEFAULT_CUSTO_MAQUINA_HORA = 2.5;
+
+function makeSaleCode(): string {
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    return `BVA-${stamp}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+}
 
 // custoEnergiaKwh é a tarifa única do tenant (config global); potência e depreciação são por máquina.
 function calcCustoMaquinaHora(custoEnergiaKwh: number, maquina: Pick<IMaquina, 'potenciaWatts' | 'custoDepreciacaoHora'>): number {
@@ -808,6 +814,91 @@ const produtoRoutes = new Elysia({ prefix: '/produtos' })
         return { success: true, message: 'Produto restaurado', data: flat(restored) };
     });
 
+// ── VENDAS NO BALCÃO ─────────────────────────────────────────────────────────
+
+const vendaRoutes = new Elysia({ prefix: '/vendas' })
+
+    // POST /erp/vendas — viewer+ (consultora registra uma venda e baixa o estoque acabado)
+    .post('/', async (ctx: any) => {
+        const guard = await checkTenantAccess(ctx, 'viewer');
+        if (guard) return guard;
+        const body = ctx.body as any;
+        const appKey = String(body?.appKey || '').trim();
+        const grouped = new Map<string, number>();
+        for (const item of Array.isArray(body?.items) ? body.items : []) {
+            const produtoId = String(item?.produtoId || item?.productId || '').trim();
+            const quantidade = Number(item?.quantidade ?? item?.quantity);
+            if (produtoId && Number.isInteger(quantidade) && quantidade > 0) grouped.set(produtoId, (grouped.get(produtoId) || 0) + quantidade);
+        }
+        if (!appKey || !grouped.size) {
+            ctx.set.status = 400;
+            return { success: false, error: 'Informe ao menos um produto e sua quantidade.' };
+        }
+
+        const productIds = [...grouped.keys()];
+        const products = await mErp.find({ appKey, tipo: 'produto_fabril', uuid: { $in: productIds }, deletedAt: null });
+        const productById = new Map(products.map((product) => [product.uuid, product]));
+        if (productIds.some((id) => !productById.has(id))) {
+            ctx.set.status = 404;
+            return { success: false, error: 'Um ou mais produtos não foram encontrados.' };
+        }
+        for (const [produtoId, quantidade] of grouped) {
+            const data = productById.get(produtoId)!.data as IProdutoFabril;
+            if (Number(data.estoqueAcabado || 0) < quantidade) {
+                ctx.set.status = 400;
+                return { success: false, error: `Estoque insuficiente para ${data.nome}. Disponível: ${data.estoqueAcabado || 0}.` };
+            }
+        }
+
+        const updatedProductIds: string[] = [];
+        let order: any;
+        try {
+            for (const [produtoId, quantidade] of grouped) {
+                const updated = await mErp.findOneAndUpdate(
+                    { uuid: produtoId, appKey, tipo: 'produto_fabril', deletedAt: null, 'data.estoqueAcabado': { $gte: quantidade } },
+                    { $inc: { 'data.estoqueAcabado': -quantidade } },
+                    { new: true },
+                );
+                if (!updated) throw new Error('O estoque foi atualizado por outra venda. Revise o carrinho e tente novamente.');
+                updatedProductIds.push(produtoId);
+            }
+            const items = [...grouped.entries()].map(([produtoId, quantidade]) => {
+                const data = productById.get(produtoId)!.data as IProdutoFabril;
+                const unitPrice = round2(Number(data.precoVarejo || 0));
+                return { productId: produtoId, name: data.nome, category: data.categoria, unitPrice, quantity: quantidade, subtotal: round2(unitPrice * quantidade) };
+            });
+            const total = round2(items.reduce((sum, item) => sum + item.subtotal, 0));
+            order = await mBvaOrder.create({
+                code: makeSaleCode(), appKey, channel: 'console', status: 'confirmed', currency: 'BRL', total, items,
+                customer: {
+                    name: normalizeOptionalString(body?.cliente?.nome || body?.customer?.name),
+                    phone: normalizeOptionalString(body?.cliente?.telefone || body?.customer?.phone),
+                    notes: normalizeOptionalString(body?.observacoes || body?.customer?.notes),
+                },
+                reseller: { id: String(ctx.user?.sub || ''), name: normalizeOptionalString(ctx.user?.name || ctx.user?.nome) },
+                source: 'studio-console:vendas',
+                metadata: { formaPagamento: normalizeOptionalString(body?.formaPagamento) },
+            });
+            await mErp.insertMany(items.map((item) => ({
+                uuid: crypto.randomUUID(), appKey, tipo: 'kardex',
+                data: { tipo: 'SAIDA', subtipo: 'VENDA VAREJO', descricao: `Venda ${order.code}: ${item.name} × ${item.quantity}`, valor: item.subtotal, quantidade: item.quantity, referenciaId: String(order._id), operadorEmail: ctx.user?.email } as IKardex,
+            })));
+            ctx.set.status = 201;
+            return { success: true, data: { code: order.code, id: String(order._id), total, items } };
+        } catch (error: any) {
+            await Promise.all(updatedProductIds.map((produtoId) => mErp.updateOne(
+                { uuid: produtoId, appKey, tipo: 'produto_fabril' },
+                { $inc: { 'data.estoqueAcabado': grouped.get(produtoId) || 0 } },
+            )));
+            if (order) await Promise.all([
+                mBvaOrder.deleteOne({ _id: order._id }),
+                mErp.deleteMany({ appKey, tipo: 'kardex', 'data.referenciaId': String(order._id) }),
+            ]);
+            ctx.set.status = 400;
+            return { success: false, error: error.message || 'Não foi possível registrar a venda.' };
+        }
+    });
+
 // ── CONFIGURAÇÃO DE FABRICAÇÃO (singleton por tenant — tarifa de energia) ──────
 
 const configRoutes = new Elysia({ prefix: '/config' })
@@ -1143,6 +1234,7 @@ function round2(n: number) { return Math.round(n * 100) / 100; }
 export const erpRoutes = new Elysia({ prefix: '/erp' })
     .use(insumoRoutes)
     .use(produtoRoutes)
+    .use(vendaRoutes)
     .use(configPublicRoutes)
     .use(configLogoRoutes)
     .use(configRoutes)

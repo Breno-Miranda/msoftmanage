@@ -18,6 +18,12 @@ function sanitizeString(value: unknown, max = 500): string | undefined {
     return trimmed ? trimmed.slice(0, max) : undefined;
 }
 
+function phoneSearchPattern(value: unknown): RegExp | null {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.length < 8) return null;
+    return new RegExp(`^\\D*${digits.split('').join('\\D*')}\\D*$`);
+}
+
 function normalizeItems(rawItems: any[]) {
     return rawItems.slice(0, MAX_ITEMS).map((item) => {
         const quantity = Math.max(1, Number(item.quantity || 1));
@@ -112,6 +118,23 @@ export const bvaOrderRoutes = new Elysia({ prefix: '/bva/orders' })
             ctx.set.status = 500;
             return { success: false, error: error.message };
         }
+    })
+    .get('/cliente', async (ctx: any) => {
+        const accessError = await requireAppAccess('viewer')(ctx);
+        if (accessError) return accessError;
+        const query = ctx.query as Record<string, string>;
+        const phone = phoneSearchPattern(query.phone);
+        if (!phone) {
+            ctx.set.status = 400;
+            return { success: false, error: 'Informe um WhatsApp válido para a consulta.' };
+        }
+        const order = await mBvaOrder.findOne({ appKey: query.appKey || 'bva', 'customer.phone': phone })
+            .sort({ createdAt: -1 })
+            .select('customer createdAt');
+        return {
+            success: true,
+            data: order ? { found: true, ...(order.customer?.toJSON?.() || order.customer || {}) } : { found: false },
+        };
     })
     .get('/', async (ctx: any) => {
         const accessError = await requireAppAccess('viewer')(ctx);

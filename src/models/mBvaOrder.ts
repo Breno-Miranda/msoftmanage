@@ -28,7 +28,7 @@ export interface IBvaOrderReseller {
 export interface IBvaOrder extends Document {
     code: string;
     appKey: string;
-    channel: 'whatsapp';
+    channel: 'whatsapp' | 'console';
     status: 'new' | 'sent_to_whatsapp' | 'confirmed' | 'delivered' | 'cancelled';
     currency: string;
     total: number;
@@ -46,7 +46,7 @@ const bvaOrderSchema = new Schema<IBvaOrder>(
     {
         code: { type: String, required: true, unique: true, index: true },
         appKey: { type: String, required: true, index: true },
-        channel: { type: String, enum: ['whatsapp'], default: 'whatsapp' },
+        channel: { type: String, enum: ['whatsapp', 'console'], default: 'whatsapp' },
         status: {
             type: String,
             enum: ['new', 'sent_to_whatsapp', 'confirmed', 'delivered', 'cancelled'],
